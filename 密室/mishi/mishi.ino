@@ -147,3 +147,4 @@ d=0;
 lcd.clear();
 }
 }
+//Terrible coding style
