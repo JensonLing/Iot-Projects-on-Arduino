@@ -1,8 +1,8 @@
 /*
 Controller of Bookcase                                                            
-Author: HuangSenhong
-Email: senhonghuang@126.com
-Time: 03/05/2016                                                               
+Author: Jerison Ling
+Email: lingjie981119@126.com
+Time: 05/09/2019                                                               
 */
 /*******************Port Interface**************
  Arduino Nano          Zigbee DL-22 

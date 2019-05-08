@@ -1,0 +1,653 @@
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 1   
+
+
+C51 COMPILER V9.05, COMPILATION OF MODULE ZHIWEN
+OBJECT MODULE PLACED IN ZhiWen.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE ZhiWen.C BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <intrins.h>
+   3          #include"lcd1602.h"
+   4          //store:dyrobot.taobao
+   5          
+   6          sbit buzzer=P2^0;  //·äÃùÆ÷     µÍµçÆ½´ò¿ª·äÃùÆ÷
+   7          sbit red=   P1^0;  //ºìÉ«µÆ ±íÊ¾ Â¼Èë Ä£Ê½ 
+   8          sbit green= P1^1;  //ÂÌÉ«µÆ ±íÊ¾ Ê¶±ð Ä£Ê½
+   9          
+  10          sbit k1=P3^2; //Çå³ýËùÓÐÖ¸ÎÆ£¨10¸öÖ¸ÎÆÇå³ý£©
+  11          sbit k2=P3^3; //Ä£Ê½Ê¶±ð×ª»»
+  12          sbit k3=P3^4; //Â¼ÈëÒ»´ÎÖ¸ÎÆ
+  13          
+  14          #define Max_User 10
+  15          #define error 2
+  16             
+  17          unsigned int    SaveNumber=0,searchnum=0;
+  18          unsigned int    SearchNumber=0;         
+  19          unsigned int    clk0=0;
+  20          
+  21          unsigned char str[6]={0,0,0,0,0,'\0'};
+  22          
+  23          unsigned char code Identify[16]="Mode:   Identify";
+  24          unsigned char code Input[16]   ="Mode:   Input   ";
+  25          
+  26          bit modeflag=0,clearallflag=0,changeflag=0;
+  27          
+  28          // modeflag=0 ÎªÊ¶±ðÄ£Ê½ modeflag=1ÎªÂ¼ÈëÖ¸ÎÆÄ£Ê½
+  29          //Ã¿³É¹¦Â¼ÈëÒ»´ÎÖ¸ÎÆ SaveNumber++
+  30          
+  31          //////////////////////////////////////³£ÓÃÖ¸Áî¶¨Òå/////////////////////////////
+  32          
+  33          //Verify  Password   £ºÑéÖ¤Éè±¸ÎÕÊÖ¿ÚÁî
+  34          unsigned char code VPWD[16]={16,0X01 ,0Xff,0xff,0xff,0xff, 0x01,0,7,0x13,0x00,0x00,0x00,0x00,0x00,0x1b};         
+             -//»ØËÍ12¸ö
+  35          
+  36          //ÉèÖÃÉè±¸ÎÕÊÖ¿ÚÁî
+  37          unsigned char code STWD[16]={16,0X01 ,0Xff,0xff,0xff,0xff, 0x01,0,7,0x12,0x00,0x00,0x00,0x00,0x00,0x1a};         
+             -//»ØËÍ12¸ö
+  38          
+  39          //GetImage           £ºÌ½²âÊÖÖ¸²¢´Ó´«¸ÐÆ÷ÉÏ¶ÁÈëÍ¼Ïñ
+  40          unsigned char code GIMG[14]={12, 0X01 ,0Xff,0xff,0xff,0xff, 0x01, 0,3,1,0x00,0x05};     //»ØËÍ12¸ö
+  41          
+  42          //Gen Templet1        £º¸ù¾ÝÔ­Ê¼Í¼ÏñÉú³ÉÖ¸ÎÆÌØÕ÷1
+  43          unsigned char code GENT1[14]={13,0X01 ,0Xff,0xff,0xff,0xff,0x01,0,4,2,1,0x00,0x08};     //»ØËÍ12¸ö
+  44          
+  45          //Gen Templet2        £º¸ù¾ÝÔ­Ê¼Í¼ÏñÉú³ÉÖ¸ÎÆÌØÕ÷2
+  46          unsigned char code GENT2[14]={13,0X01 ,0Xff,0xff,0xff,0xff,0x01,0,4,2,2,0x00,0x09}; //»ØËÍ12¸ö  
+  47          
+  48                  
+  49          //Search Finger      £ºÒÔCharBufferA»òCharBufferBÖÐµÄÌØÕ÷ÎÄ¼þËÑË÷Õû¸ö»ò²¿·ÖÖ¸ÎÆ¿â
+  50          unsigned char code SEAT[18]={17,  0X01 ,0Xff,0xff,0xff,0xff, 0x01,   0,8, 4,1,0,0,    0,0xf0,  0x00,0xfe};
+             -        //»ØËÍ16¸ö
+  51          
+  52          
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 2   
+
+  53          //Merge Templet      ;½«CharBufferAÓëCharBufferBÖÐµÄÌØÕ÷ÎÄ¼þºÏ²¢Éú³ÉÄ£°å£¬½á¹û´æÓÚModelBuffer¡£
+  54          unsigned char code MERG[14]={12,  0X01 ,0Xff,0xff,0xff,0xff, 0x01,  0,3,5 , 0x00,0x09};//»ØËÍ12¸ö       
+  55          
+  56          //Store Templet      £º½«ModelBufferÖÐµÄÎÄ¼þ´¢´æµ½flashÖ¸ÎÆ¿âÖÐ
+  57          unsigned char code STOR[16]={15,  0X01 ,0Xff,0xff,0xff,0xff, 0x01,  0,6,6,2,     0x00,0x00,     0x00,0x0f}
+             -; //»ØËÍ12¸ö
+  58          
+  59          //Read Note
+  60          unsigned char code RDNT[14]={13,0X01 ,0Xff,0xff,0xff,0xff, 0x01, 0,4,0x19,  0, 0x00,0x1e};
+  61          
+  62          //Clear Note
+  63          unsigned char code DENT[46]={45,0X01 ,0Xff,0xff,0xff,0xff, 0x01, 0,36,0x18,0,0,0,
+  64          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0x00,0x3d};
+  65          
+  66          //DEL one templet
+  67          unsigned char code DELE_one[16]={16, 0X01 ,0Xff,0xff,0xff,0xff, 0x01,   0,7,  0x0c,    0x00,0x00, 0,1, 0x0
+             -0,0x15};
+  68          
+  69          //DEL templet      ;Çå¿ÕÖ¸ÎÆ¿â
+  70          unsigned char code DELE_all[12]={12,0X01 ,0Xff,0xff,0xff,0xff, 0x01, 0,3,  0x0d,0x00,0x11};
+  71          
+  72          //////////////////////////////////////³£ÓÃÖ¸Áî¶¨Òå-------½áÊø/////////////////////////////////////////////
+             -//////////////////////////////////////////
+  73          
+  74          
+  75          //////////////////////////////////////ºê¶¨Òå//////////////////////////////////////////////////////////////
+             -//////////
+  76          #define FALSE  0
+  77          #define TURE   1
+  78          #define ERROR  255
+  79          
+  80          //×´Ì¬¶¨Òå±í
+  81          #define on      1
+  82          #define off     0
+  83          
+  84          #define MAX_NUMBER    63 
+  85          #define _Nop()  _nop_()
+  86          
+  87          
+  88          //////////////////////////////////////ºê¶¨Òå------------½áÊø//////////////////////////////////////////////
+             -//////////
+  89          
+  90          unsigned char             FifoNumber=0; 
+  91          xdata unsigned char   FIFO[MAX_NUMBER+1]={0};
+  92          
+  93          /*********1ºÁÃëÑÓÊ±³ÌÐò**********/
+  94          void delay1ms(unsigned int t)
+  95          {
+  96   1              unsigned int i,j;
+  97   1              for(i=0;i<t;i++)
+  98   1                 for(j=0;j<120;j++)
+  99   1                 ;
+ 100   1      }
+ 101          
+ 102          
+ 103          void TxdByte(unsigned char dat)//´®¿Ú·¢ËÍÐÅÏ¢,Í¨¹ý²éÑ¯·½Ê½·¢ËÍÒ»¸ö×Ö·û
+ 104          {
+ 105   1          TI = 0;              //ÈÃTI£½0
+ 106   1          SBUF = dat;  //¶ÁÈëÊý¾Ý
+ 107   1          while(!TI);  //µÈ´ý·¢ËÍÍê±Ï
+ 108   1          TI = 0;              //ÇåÁã
+ 109   1      }
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 3   
+
+ 110          
+ 111          bit Command(unsigned char *p,unsigned char MaxTime) //ÃüÁî½âÎö,¸øÄ£¿é·¢ËÍÒ»¸öÃüÁî
+ 112          {
+ 113   1              unsigned char count=0,tmpdat=0,temp=0,i=0,package=0,flag=0,checksum=0;
+ 114   1                      
+ 115   1              bit result=0, start=0,stop=0;
+ 116   1      
+ 117   1              TxdByte(0xef);//Êý¾Ý°ü°üÍ·Ê¶±ðÂë
+ 118   1              TxdByte(0x01);//Êý¾Ý°ü°üÍ·Ê¶±ðÂë
+ 119   1              i=*p;         //Êý×éµÄµÚ¡°0¡±¸öÔªËØ¡¢ÀïÃæ´æ·ÅÁË±¾Êý×éµÄ³¤¶È£¬°ÑÕâ¸ö³¤¶È¸ø±äÁ¿i£¬·½±ã½øÐÐ²Ù×÷
+ 120   1              p++; 
+ 121   1              p++;
+ 122   1              for (count=i-1; count!=1;count--)  //Sent command String
+ 123   1                      {
+ 124   2                              temp=*p++;//È¡µÚ¸ö¡°1¡±¸öÔªËØµÄÄÚÈÝ£¬È»ºó·¢ËÍ 
+ 125   2                      TxdByte(temp);//½«Êý¾Ý·¢ËÍ³öÈ¥
+ 126   2                      }  
+ 127   1              result=TURE;//·¢ËÍÍê³É,½á¹ûÎªÕæ (ÕæÎª1)         
+ 128   1              FifoNumber=0;
+ 129   1              for (count=MAX_NUMBER+1; count!=0; count--)//Çå¿ÕËùÓÐFIFO[]Êý×éÀïÃæµÄÄÚÈÝ£¬Ð´Èë0X00
+ 130   1                       FIFO[count-1]=0x00;  
+ 131   1              
+ 132   1              if (result)   
+ 133   1              {               
+ 134   2              result=FALSE;
+ 135   2              start =FALSE;
+ 136   2                      stop  =FALSE;
+ 137   2              count=0;
+ 138   2              clk0=0; //ÇåÁãCL0¼ÆÊý
+ 139   2                      
+ 140   2              do /////////////////////////////doµÄÄÚÈÝ////////////////////////////////
+ 141   2                      {       
+ 142   3                              restart0:                               
+ 143   3                              if (RI==1)//Èç¹û½ÓÊÕµ½Êý¾Ý
+ 144   3                              {                               
+ 145   4                                              tmpdat=SBUF;//ÏÈ°Ñ½ÓÊÕµ½µÄÊý¾Ý·Åµ½tmpdatÖÐ
+ 146   4                              RI=0;
+ 147   4                              if ((tmpdat==0xef)&&(start==FALSE))//Õâ¸öÊý¾ÝÎªµÚÒ»¸ö´«»ØÀ´µÄÊý¾Ý£¬Ò²¾ÍÊÇ¡°Ö¸ÁîÓ¦´ð¡±µÄµÚÒ»¸
+             -ö×Ö½Ú
+ 148   4                                      { 
+ 149   5                                                              count=0;
+ 150   5                                                      FIFO[0]=tmpdat;//¶ÁÈëµÚÒ»¸öÓ¦´ð×Ö½Ú(0XEF)£¬´æÔÚµÚ¡°0¡±¸öÔªËØÖÐ    
+ 151   5                                                              flag=1; 
+ 152   5                                                              goto 
+ 153   5                                                                      restart0;//¿ÉÒÔÓÃÖÐ¶Ï·½Ê½½øÐÐ                   
+ 154   5                                                      
+ 155   5                                      }
+ 156   4                                              if(flag==1)//µÚÒ»¸ö×Ö½ÚÒÑ¾­»ØÀ´£¬ËùÒÔflag==1³ÉÁ¢
+ 157   4                                                      {  
+ 158   5                                                              if(tmpdat!=0x01)  //½ÓÊÕÊý¾Ý´íÎó£¬½«ÖØÐÂ´Ó»º³åÇø½ÓÊÕÊý¾Ý
+ 159   5                                                              {       
+ 160   6                                                                      flag=0;//½ÓÊÕÓ¦´ðÊ§°Ü
+ 161   6                                                                      result=FALSE;
+ 162   6                                                              start =FALSE;
+ 163   6                                                                      stop=FALSE;
+ 164   6                                                              count=0;
+ 165   6                                                                      goto 
+ 166   6                                                                              restart0;                                       
+ 167   6                                                              
+ 168   6                                                              }
+ 169   5                                                              //Èç¹û³É¹¦½ÓÊÕµ½0xef01£¬¿ÉÒÔ¿ªÊ¼½ÓÊÕÊý¾Ý
+ 170   5                                                              flag=2;//flag=2;±íÊ¾Ó¦´ð³É¹¦£¬¿ÉÒÔ¿ªÊ¼½ÓÊÕÊý¾ÝÁË
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 4   
+
+ 171   5                                                              count++;//ÏÖÔÚcount=1;
+ 172   5                                                              FIFO[count]=tmpdat;//¶ÁÈëµÚ¶þ¸öÓ¦´ð×Ö½Ú£¨0X01£©£¬´æÔÚµÚ¡°1¡±¸öÔªËØÖÐ    
+ 173   5                                                              start=TURE;     //Ó¦´ð³É¹¦¿ÉÒÔ¿ªÊ¼½ÓÊÕÊý¾Ý
+ 174   5                                                                  goto 
+ 175   5                                                                              restart0;       
+ 176   5                                                      }                  
+ 177   4                              if((flag==2)&&(start==TURE))//flag=2;±íÊ¾Ó¦´ð³É¹¦£¬¿ÉÒÔ¿ªÊ¼½ÓÊÕÊý¾ÝÁË
+ 178   4                                      {                                                        
+ 179   5                                                              count++; //Êý¾ÝÔªËØÏÂ±ê++
+ 180   5                                                  FIFO[count]=tmpdat;//´æÈëÊý¾Ý
+ 181   5                                                              if(count>=6)
+ 182   5                                                                      {
+ 183   6                                                                              checksum=FIFO[count]+checksum; //¼ÆËãÐ£ÑéºÍ
+ 184   6                                                                      }
+ 185   5                                                              if(count==8)
+ 186   5                                                                      { 
+ 187   6                                                                              package=FIFO[7]*0X100+FIFO[8];  //¼ÆËã°ü³¤¶È                                                    
+ 188   6                                                                              stop= TURE;
+ 189   6                                                                      }
+ 190   5                                                              if(stop)
+ 191   5                                                                      {                                               
+ 192   6                                                                              if(count==package+8)
+ 193   6                                                                              {
+ 194   7                                                                                      checksum=checksum-FIFO[count-1] - FIFO[count];
+ 195   7                                                                                      if(checksum!=FIFO[count]&0xff) 
+ 196   7                                                                                              result=FALSE; //Ð£ÑéÊ§°Ü,ÖÃ½á¹û±êÖ¾Îª0                                                  
+ 197   7                                                                                      else 
+ 198   7                                                                                              result=TURE;
+ 199   7                                                                                      flag=0;
+ 200   7                                                                                      break;
+ 201   7                                                                              } 
+ 202   6                                                                      }
+ 203   5                                      }
+ 204   4                              }
+ 205   3                }/////////////////////////////doµÄÄÚÈÝ----------------½áÊø////////////////////////////////
+ 206   2                         
+ 207   2                      while ((clk0<=MaxTime)&&(count<=MAX_NUMBER)&&(changeflag==0)); //ÓÉ¶¨Ê±Æ÷ÒÔ¼°×î´ó½ÓÊÕÊý¾ÝÀ´¿ØÖÆ£¬±£Ö¤²»»
+             -áÔÚ´ËÒ»Ö±Ñ­»·
+ 208   2                        
+ 209   2              FifoNumber=count;       //±£´æ½ÓÊÕµ½µÄÊý¾Ý¸öÊý
+ 210   2               }
+ 211   1         return (result);
+ 212   1      }
+ 213          
+ 214          bit VefPSW(void)//ÑéÖ¤Éè±¸ÎÕÊÖ¿ÚÁî,³É¹¦·µ»Ø1     
+ 215          {
+ 216   1              unsigned char  count=0;
+ 217   1              while (1)
+ 218   1              {
+ 219   2              if(Command(VPWD,20) && (FifoNumber==11) && (FIFO[9]==0x00)) 
+ 220   2                      {
+ 221   3                              return(1);      }
+ 222   2              count++;
+ 223   2                      if (count>=2)//Èç¹û²»³É¹¦£¬ÔÙÑéÖ¤Ò»´Î£¬Èç¹ûÁ½´Î²»³É¹¦£¬·µ»ØÊ§°Ü
+ 224   2                      {       
+ 225   3                          return(0);   
+ 226   3                           }
+ 227   2              }
+ 228   1      }
+ 229          
+ 230          
+ 231          void Clear_All(void) //Çå¿ÕËùÓÐÖ¸ÎÆÐÅÏ¢£¬Çå¿ÕÇ°Ê×ÏÈÑéÖ¤ºÍÖ¸ÎÆÄ£¿éÍ¨Ñ¶ÊÇ·ñÕý³£  
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 5   
+
+ 232          {
+ 233   1      
+ 234   1              delay1ms(200);                
+ 235   1                      Command(DELE_all,50); //Çå¿ÕÖ¸ÎÆ¿â
+ 236   1              delay1ms(200); 
+ 237   1      }
+ 238          
+ 239          unsigned char ImgProcess(unsigned char BUFID)  //·¢»ñÈ¡Í¼Ïñ²¢Éú³ÉÌØÕ÷ÎÄ¼þ£¬´æÈëBUFIDÖÐ//ÊäÈë²ÎÊýÎª»º³åÇøºÅ
+             -  
+ 240          {       
+ 241   1          if(Command(GIMG,89) && (FifoNumber==11) && (FIFO[9]==0x00))  
+ 242   1          {
+ 243   2                      if(BUFID==1)      
+ 244   2                      {                               
+ 245   3                      if(Command(GENT1,60) && (FifoNumber==11) && (FIFO[9]==0x00))  
+ 246   3                      {                                                       
+ 247   4                                      return 1;
+ 248   4                              }  
+ 249   3                       }
+ 250   2                      else if(BUFID==2)
+ 251   2                      {
+ 252   3                              if(Command(GENT2,60) && (FifoNumber==11) && (FIFO[9]==0x00))  
+ 253   3                      {                               
+ 254   4                                      return 1;
+ 255   4                              }                       
+ 256   3                      }
+ 257   2                      else
+ 258   2                      {
+ 259   3                        ;
+ 260   3                      }
+ 261   2          }
+ 262   1      
+ 263   1          return 0;               
+ 264   1      }
+ 265          
+ 266          bit Searchfinger(void)//ËÑË÷Ö¸ÎÆ(·¢ËÍËÑË÷ÃüÁî¡¢ÒÔ¼°¸ù¾Ý·µ»ØÖµÈ·¶¨ÊÇ·ñ´æÔÚ)        
+ 267          {               
+ 268   1              if(Command(SEAT,60) && (FifoNumber==15) && (FIFO[9]==0x00) )  
+ 269   1          {
+ 270   2                      SearchNumber=FIFO[10]*0x100+FIFO[11];//ËÑË÷µ½µÄÒ³Âë
+ 271   2                      //MatchScore=FIFO[12]*0x100+FIFO[13]   ¿ÉÒÔÔÚ´Ë¼ÆËãµÃ·Ö£¬´Ó¶ø½øÐÐ°²È«¼¶±ðÉè¶¨£¬±¾³ÌÐòºöÂÔ
+ 272   2                      return 1;
+ 273   2              }     
+ 274   1          else             
+ 275   1          {
+ 276   2              return 0;
+ 277   2          }  
+ 278   1      }
+ 279          
+ 280          
+ 281          unsigned char search(void)//ËÑË÷ÓÃ»§ 
+ 282          {
+ 283   1              unsigned char SearchBuf=0,i=0;
+ 284   1              while (i<2)
+ 285   1          {
+ 286   2              if ( ImgProcess(1)==1 ) //Ê×ÏÈ¶ÁÈëÒ»´ÎÖ¸ÎÆ ÕâÀï±íÊ¾ÓÐÖ¸ÎÆ°´ÔÚÉÏÃæÁË 
+ 287   2              {
+ 288   3                      SearchBuf=Searchfinger();//½øÐÐÖ¸ÎÆ±È¶Ô£¬Èç¹ûËÑË÷µ½£¬·µ»ØËÑË÷µ½µÄÖ¸ÎÆÐòºÅ
+ 289   3                      if(SearchBuf==1)
+ 290   3                      {
+ 291   4                              return SearchNumber; 
+ 292   4                      }
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 6   
+
+ 293   3                      else 
+ 294   3                              {
+ 295   4                                return 255; //ÓÉÓÚÖ»ÓÐ162¸öÖ¸ÎÆ£¬Èç¹û·µ»Ø255£¬±íÊ¾Õâ¸öÖ¸ÎÆÊ¶±ðÊ§°Ü
+ 296   4                              }     
+ 297   3              }
+ 298   2                      i++;    
+ 299   2          }
+ 300   1         return 0;
+ 301   1      }
+ 302          
+ 303          bit savefingure(unsigned char ID)//±£´æÖ¸ÎÆ
+ 304          {
+ 305   1               unsigned char i=0;
+ 306   1               //ÏÖÔÚ¿ªÊ¼½øÐÐ´æ´¢Ö¸ÎÆÄ£°åµÄ²Ù×÷
+ 307   1           for (i=0;i<16;i++) //±£´æÖ¸ÎÆÐÅÏ¢
+ 308   1               {
+ 309   2                      FIFO[i]=STOR[i];
+ 310   2               }  
+ 311   1           FIFO[12]=ID;           //°ÑÖ¸ÎÆÄ£°å´æ·ÅµÄPAGE_IDÒ²¾ÍÊÇFLASHµÄÎ»ÖÃ
+ 312   1           FIFO[14]=FIFO[14]+ID;      //Ð£ÑéºÍ
+ 313   1           if (Command(FIFO,70)==1)//²»³É¹¦·µ»Ø0      //´Ë´¦½øÐÐ´æ·ÅÖ¸ÎÆÄ£°åµÄÃü
+ 314   1               {
+ 315   2                 return(1);
+ 316   2               }
+ 317   1      
+ 318   1               return (0) ; //²»³É¹¦·µ»Ø0
+ 319   1      }
+ 320          
+ 321          
+ 322          
+ 323          unsigned char enroll(void) //²É¼¯Á½´ÎÖ¸ÎÆ£¬Éú³É1¸ö Ö¸ÎÆÄ£°å
+ 324          {
+ 325   1              unsigned char temp=0,count=0;
+ 326   1              delay1ms(30);
+ 327   1              while(1)
+ 328   1              {
+ 329   2                      temp=ImgProcess(1); //Éú³ÉÌØÕ÷1    
+ 330   2                      if (temp==1)//Éú³ÉÌØÕ÷ÎÄ¼þ³É¹¦             
+ 331   2              {                     
+ 332   3                      break;
+ 333   3              }
+ 334   2              else                   
+ 335   2              {
+ 336   3                      if (temp==0)//²É¼¯Ö¸ÎÆÃ»ÓÐ³É¹¦
+ 337   3                      { 
+ 338   4                                      count++;
+ 339   4                      if (count>=40)//Èç¹û²É¼¯ÁË40´Î£¬»¹²»³É¹¦£¬Ö±½Ó²É¼¯Ê§°Ü£¬Ö±½ÓÍË³öenrollº¯Êý£­£­£­£­·µ»Ø0  
+ 340   4                                              return(0);
+ 341   4                  }
+ 342   3              }
+ 343   2              }
+ 344   1              //²É¼¯µÚÒ»¸öÌØÕ÷³É¹¦ 
+ 345   1              count=0;  
+ 346   1              buzzer=0;
+ 347   1              delay1ms(100);
+ 348   1              buzzer=1;
+ 349   1              delay1ms(2000);//ÑÓÊ±2S¿ªÊ¼²É¼¯ÏÂÒ»¸öÌØÕ÷
+ 350   1      
+ 351   1              //¿ªÊ¼²É¼¯µÚ¶þ¸öÌØÕ÷ 
+ 352   1              while(1)
+ 353   1              {
+ 354   2                      temp=ImgProcess(2); //Éú³ÉÌØÕ÷2    
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 7   
+
+ 355   2                      if (temp==1)//Éú³ÉÌØÕ÷ÎÄ¼þ2³É¹¦
+ 356   2              {
+ 357   3                      if (  (Command(MERG,40)&& (FifoNumber==11) && (FIFO[9]==0x00))==0  ) //ºÏ²¢²»³É¹¦·µ»Ø0£¬³É¹¦·µ»Ø1
+ 358   3                              {
+ 359   4                                      return 0;
+ 360   4                              }       
+ 361   3                              else//ÌØÕ÷ÎÄ¼þºÏ²¢Éú³ÉÄ£°å£¬½á¹û´æÓÚModelBuffer
+ 362   3                              {
+ 363   4                                       buzzer=0;
+ 364   4                           delay1ms(100);
+ 365   4                           buzzer=1;
+ 366   4                                       delay1ms(100);
+ 367   4                                       buzzer=0;
+ 368   4                           delay1ms(100);     //ÏìÁ½Éù£¬±íÊ¾Éú³ÉÒ»¸öÄ£°å³É¹¦
+ 369   4                           buzzer=1;
+ 370   4                           return 1;
+ 371   4                              }       
+ 372   3              }
+ 373   2              else      
+ 374   2              {       
+ 375   3                                      count++;
+ 376   3                                      
+ 377   3                                      if (count>=25) 
+ 378   3                                      
+ 379   3                                      return(0);
+ 380   3       
+ 381   3              }
+ 382   2              }
+ 383   1      }
+ 384          
+ 385          
+ 386          void shownum(unsigned int dat)
+ 387          {
+ 388   1              unsigned int numdat=0;
+ 389   1              numdat=dat;
+ 390   1              GotoXY(0,1);//x,y
+ 391   1              Print("Finger:");
+ 392   1              GotoXY(0,8);//x,y
+ 393   1              if(numdat<240)//Ö¸ÎÆÄ£¿éÖ»ÄÜ´æ1000¸öÖ¸ÎÆ
+ 394   1              {
+ 395   2                  str[0]=0x30+numdat/100;      //°Ù Î»×ª»»³ÉASCIIÂë
+ 396   2                      str[1]=0x30+(numdat%100)/10; //Ê® Î»×ª»»³ÉASCIIÂë
+ 397   2                      str[2]=0x30+numdat%10;           //¸ö Î»×ª»»³ÉASCIIÂë
+ 398   2                      str[3]=' ';
+ 399   2                      str[4]=' ';     
+ 400   2                      Print(str);
+ 401   2              }
+ 402   1              if(numdat==ERROR)//±íÊ¾Ê¶±ð´íÎó
+ 403   1              {
+ 404   2                 Print("Error");
+ 405   2              }
+ 406   1              
+ 407   1              
+ 408   1      }
+ 409          
+ 410          void changeState(void)
+ 411          {
+ 412   1      
+ 413   1         GotoXY(0,0);//x,y
+ 414   1         if(modeflag==0)
+ 415   1         {
+ 416   2              Print(Identify);//ÏÔÊ¾ Ê¶±ðÄ£Ê½  Indentity
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 8   
+
+ 417   2              green=0;
+ 418   2              red=1;
+ 419   2         }
+ 420   1         else
+ 421   1         {
+ 422   2              Print(Input);   //ÏÔÊ¾  ÊäÈëÄ£Ê½ Input
+ 423   2              green=1;
+ 424   2              red=0;
+ 425   2         }
+ 426   1         changeflag=0;
+ 427   1         shownum(0);          
+ 428   1      }
+ 429          
+ 430           void UartInit(void)            //57600bps@11.0592MHz
+ 431          {
+ 432   1              PCON |= 0x80;           //Ê¹ÄÜ²¨ÌØÂÊ±¶ËÙÎ»SMOD
+ 433   1              SCON = 0x50;            //8Î»Êý¾Ý,¿É±ä²¨ÌØÂÊ
+ 434   1              TMOD &= 0x0F;           //Çå³ý¶¨Ê±Æ÷1Ä£Ê½Î»
+ 435   1              TMOD |= 0x21;           //Éè¶¨¶¨Ê±Æ÷1Îª8Î»×Ô¶¯ÖØ×°·½Ê½
+ 436   1              TL1 = 0xFF;                 //Éè¶¨¶¨Ê±³õÖµ
+ 437   1      TH1 = 0xFF;                 //Éè¶¨¶¨Ê±Æ÷ÖØ×°Öµ
+ 438   1              ET1 = 0;                    //½ûÖ¹¶¨Ê±Æ÷1ÖÐ¶Ï
+ 439   1              TR1 = 1;                    //Æô¶¯¶¨Ê±Æ÷1
+ 440   1      
+ 441   1      }
+ 442          
+ 443          
+ 444          void main(void)//Ö÷º¯Êý
+ 445          {
+ 446   1              unsigned char i=0;
+ 447   1                modeflag=0;
+ 448   1              ET0=1;     //¶¨Ê±Æ÷0¿ªÖÐ¶Ï
+ 449   1              TL0=0x97;  //17msµÄ³õÖµ
+ 450   1              TH0=0xBD;
+ 451   1         delay1ms(5);
+ 452   1         LcdRw=0;      //Ö»¶ÔÒº¾§½øÐÐÐ´²Ù×÷£¬²»½øÐÐ¶Á²Ù×÷
+ 453   1         delay1ms(5);
+ 454   1         LCD_Initial();//Òº¾§³õÊ¼»¯
+ 455   1         delay1ms(5); 
+ 456   1         GotoXY(0,0);//x,y
+ 457   1         Print(Identify);
+ 458   1      
+ 459   1          //´®¿Ú³õÊ¼»¯ 
+ 460   1      
+ 461   1              UartInit();
+ 462   1              IT0=0;//ÖÐ¶Ï0µÍµçÆ½ÖÐ¶Ï
+ 463   1              IT1=1;//ÖÐ¶Ï1µÍµçÆ½ÖÐ¶Ï
+ 464   1              EX0=1;//¿ªÖÐ¶Ï0
+ 465   1              EX1=1;//¿ªÖÐ¶Ï1
+ 466   1          EA=1;
+ 467   1      
+ 468   1               delay1ms(100);
+ 469   1                changeState();
+ 470   1          while(1)
+ 471   1              {
+ 472   2      
+ 473   2      
+ 474   2                      if(k3==0)//Â¼ÈëÒ»¸öÖ¸ÎÆ
+ 475   2                      {
+ 476   3      
+ 477   3                      delay1ms(10);
+ 478   3                      if(k3==0)//Èç¹ûÈÔÎªµÍµçÆ½£¬±íÊ¾°´¼üÓÐÐ§
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 9   
+
+ 479   3                              {
+ 480   4                              //UartInit();
+ 481   4                                while(k3==0);//µÈ´ýËÉÊÖ
+ 482   4                                if(SaveNumber<240)//ÓëÄ£¿éÎÕÊÖÍ¨¹ý
+ 483   4                                        {
+ 484   5                                                if(enroll()==1)//²É¼¯Á½´Î£¬Éú³É1¸öÖ¸ÎÆÄ£°å³É¹¦
+ 485   5                                                      {
+ 486   6                                                         if(savefingure(SaveNumber+1)==1)//±£´æÒ²³É¹¦
+ 487   6                                                              {
+ 488   7                                                                      SaveNumber++;//¼ÓÒ»´Î
+ 489   7                                                                      shownum(SaveNumber);
+ 490   7                                                              }
+ 491   6              
+ 492   6                                                      }
+ 493   5                                        }
+ 494   4                                      else
+ 495   4                                      {
+ 496   5                                                      buzzer=0; 
+ 497   5                                                      for(i=0;i<8;i++)
+ 498   5                                                      {
+ 499   6                                                        delay1ms(100);
+ 500   6                                                        red=~red;
+ 501   6                                                      }
+ 502   5                                                      red=0;
+ 503   5                                                      buzzer=1;               
+ 504   5                                      }       
+ 505   4                              }
+ 506   3                                              
+ 507   3                      }
+ 508   2      
+ 509   2                      if(modeflag==0)//ÎªÊ¶±ðÄ£Ê½
+ 510   2                      {         
+ 511   3                                searchnum=search();
+ 512   3                                if(searchnum>=1&&searchnum<=240)//×î¶àÖ»ÄÜ´æ´¢1000¸öÖ¸ÎÆ
+ 513   3                                {
+ 514   4                                          //ÏÔÊ¾ËÑË÷µ½µÄÖ¸ÎÆºÅ
+ 515   4                                              shownum(searchnum);
+ 516   4                                              
+ 517   4                                     //·äÃùÆ÷ÏìÒ»Éù
+ 518   4                                     buzzer=0;
+ 519   4                                     delay1ms(100);
+ 520   4                                     buzzer=1;
+ 521   4                                }
+ 522   3                                if(searchnum==ERROR)//±íÊ¾·ÅÉÏÁËÃ»ÓÐµÇ¼ÇµÄÖ¸ÎÆ»òÕßÊ¶±ð´íÎó
+ 523   3                                {
+ 524   4                                    shownum(searchnum);
+ 525   4                                         //·äÃùÆ÷ÏìÈýÉù
+ 526   4                                     buzzer=0;delay1ms(100); buzzer=1;delay1ms(100);
+ 527   4                                     buzzer=0;delay1ms(100); buzzer=1;delay1ms(100);
+ 528   4                                     buzzer=0;delay1ms(100); buzzer=1;
+ 529   4                                }
+ 530   3                      }
+ 531   2      
+ 532   2                      if(clearallflag==1)
+ 533   2                      {
+ 534   3                              clearallflag=0;
+ 535   3                              Clear_All();
+ 536   3                          red=0;           //ºìÉ«µÆÁÁ
+ 537   3                          green=1;
+ 538   3                              //·äÃùÆ÷³¤ÏìÒ»´Î£¬±íÊ¾Çå³ýËùÓÐÖ¸ÎÆ½áÊø
+ 539   3                              modeflag=1;//½øÈëÂ¼ÈëÖ¸ÎÆÄ£Ê½
+ 540   3                              GotoXY(0,0);//x,y
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 10  
+
+ 541   3                              Print(Input);
+ 542   3                              SaveNumber=0;
+ 543   3                              shownum(0);
+ 544   3                              buzzer=0;
+ 545   3                              delay1ms(800);
+ 546   3                              buzzer=1;
+ 547   3                              
+ 548   3                      }
+ 549   2                if(changeflag==1)
+ 550   2                      {
+ 551   3                         changeState();
+ 552   3                         changeflag=0;
+ 553   3                      }
+ 554   2      
+ 555   2              }////////////////////////////while(1)½áÊø////////////////////////////////
+ 556   1              
+ 557   1      }
+ 558          
+ 559          
+ 560          void int0(void) interrupt 0//ÖÐ¶Ï0£¬Çå³ýËùÓÐÖ¸ÎÆ
+ 561          {
+ 562   1              if(k1==0) //Çå³ýËùÓÐÖ¸ÎÆ
+ 563   1              {
+ 564   2                      delay1ms(10);
+ 565   2                      if(k1==0)//Èç¹ûÈÔÎªµÍµçÆ½£¬±íÊ¾°´¼üÓÐÐ§
+ 566   2                      {
+ 567   3                              while(k1==0);//µÈ´ýËÉÊÖ 
+ 568   3                              clearallflag=1;
+ 569   3                      }       
+ 570   2              }       
+ 571   1      } 
+ 572          
+ 573          void  Timer0(void) interrupt 1//¶¨Ê±Æ÷0ÖÐ¶Ïº¯Êý
+ 574          {
+ 575   1              TL0=0x97;
+ 576   1              TH0=0xBD;
+ 577   1              clk0++;   //ÑÓÊ±17ms
+ 578   1      }
+ 579          
+ 580          void int1(void) interrupt 2//ÖÐ¶Ï1£¬Ä£Ê½×ª»»
+ 581          {
+ 582   1              if(k2==0)//Ä£Ê½×ª»» ÆäÖÐÓÃmodeflag À´±êÖ¾,Ä¬ÈÏ´ÓµÚ1¸öÖ¸ÎÆ¿ªÊ¼Â¼Èë
+ 583   1              {
+ 584   2                delay1ms(20); 
+ 585   2                if(k2==0)//Èç¹ûÈÔÎªµÍµçÆ½£¬±íÊ¾°´¼üÓÐÐ§
+ 586   2                      {
+ 587   3                              while(k2==0);//µÈ´ýËÉÊÖ
+ 588   3                              modeflag=~modeflag;//0±íÊ¾Â¼ÈëÖ¸ÎÆ  1±íÊ¾Ê¶±ðÖ¸ÎÆ
+ 589   3                              changeflag=1;//±íÊ¾Ä£Ê½ÓÐ±ä»¯
+ 590   3                      }       
+ 591   2              }       
+ 592   1      }
+ 593          
+ 594          
+ 595          
+ 596          
+ 597          
+ 598          
+ 599          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.05   ZHIWEN                                                                11/25/2017 14:53:04 PAGE 11  
+
+   CODE SIZE        =   1494    ----
+   CONSTANT SIZE    =    256    ----
+   XDATA SIZE       =     64    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     15      16
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3       3
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,156 @@
+C51 COMPILER V9.05   ________                                                              07/24/2015 12:02:23 PAGE 1   
+
+
+C51 COMPILER V9.05, COMPILATION OF MODULE ________
+OBJECT MODULE PLACED IN 红外发射.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE 红外发射.C BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include<reg51.h>
+   2          #include<intrins.h>
+   3          #define uchar unsigned char
+   4          #define uint unsigned int
+   5          sbit key1=P3^3;
+   6          sbit key2=P3^4;
+   7          sbit key3=P3^5;
+   8          sbit LED=P1^0; //发射指示灯
+   9          sbit out=P3^7;
+  10          uchar i,a,num1;
+  11          void init()//初始化作用
+  12          {
+  13   1              key1=1;
+  14   1              key2=1;
+  15   1              key3=1;
+  16   1      }
+  17          void delay(uchar aa)
+  18          {
+  19   1              uchar bb,cc;
+  20   1              for(bb=aa;bb>0;bb--)
+  21   1                      for(cc=200;cc>0;cc--);
+  22   1      }
+  23          void delayms(uchar aa)//延时程序
+  24          {
+  25   1              for(a=aa;a>0;a--)
+  26   1              {
+  27   2                      _nop_();
+  28   2                      _nop_();
+  29   2                      _nop_();
+  30   2                      _nop_();
+  31   2                      _nop_();
+  32   2                      _nop_();
+  33   2                      _nop_();
+  34   2                      _nop_();
+  35   2              }
+  36   1      }
+  37          
+  38          void khz(uchar aa)//是发射38KHZ的程序
+  39          {
+  40   1              for(a=aa;a>0;a--)   //这个for语句可以得到准确的26.3波特率
+  41   1                      {
+  42   2                              out=0;
+  43   2                              i=7;            //低了17us
+  44   2                              while(i>0)i--;          //   38kHZ  
+  45   2                              out=1;
+  46   2                                      //高了9us      17+9=26us   比26.3快一点点
+  47   2                      }
+  48   1      
+  49   1      }
+  50                  //khz(116);//3.028ms   精确的时间
+  51                  //khz(64);//2.006ms
+  52                  //khz(40); //1.052ms
+  53                  //delayms(125);//2.012ms      这里是一些时间的介绍
+  54                  //delayms(65);//1.054ms
+  55                  //delayms(93);//1.5ms
+C51 COMPILER V9.05   ________                                                              07/24/2015 12:02:23 PAGE 2   
+
+  56          void fashu(uchar num)
+  57          {
+  58   1              khz(116);//发射3ms 38khz
+  59   1              delayms(125);
+  60   1              for(num1=8;num1>0;num1--) //原来用的是a  后来出错，肯定在这里！
+  61   1              {
+  62   2                      khz(40);
+  63   2                      if(num&0x01)
+  64   2                              delayms(93);//delay 1.5ms
+  65   2                      else
+  66   2                              delayms(65);//delay 1ms
+  67   2                      num=num>>1;
+  68   2              }
+  69   1              khz(20);
+  70   1      
+  71   1      }
+  72          void tishi()
+  73          {
+  74   1                      LED=0;
+  75   1                      delay(50);
+  76   1                      LED=1;
+  77   1                      delay(50);
+  78   1                      LED=0;
+  79   1                      delay(50);
+  80   1                      LED=1;
+  81   1      }
+  82          void keyscan()//按键扫描
+  83          {
+  84   1              if(key1==0)
+  85   1              {
+  86   2                      _nop_();_nop_();_nop_();_nop_();
+  87   2                      _nop_();_nop_();_nop_();_nop_();
+  88   2                      if(key1==0)
+  89   2                      {
+  90   3                              while(!key1);
+  91   3                              fashu(0xf3);
+  92   3                              tishi();
+  93   3                      }
+  94   2      
+  95   2              }
+  96   1              if(key2==0)
+  97   1              {
+  98   2                      _nop_();_nop_();_nop_();_nop_();
+  99   2                      _nop_();_nop_();_nop_();_nop_();
+ 100   2                      if(key2==0)
+ 101   2                      {
+ 102   3                              while(!key2);
+ 103   3                              fashu(0x3f);
+ 104   3                              tishi();
+ 105   3                              
+ 106   3                      }
+ 107   2      
+ 108   2              }
+ 109   1              if(key3==0)
+ 110   1              {
+ 111   2                      _nop_();_nop_();_nop_();_nop_();
+ 112   2                      _nop_();_nop_();_nop_();_nop_();
+ 113   2                      if(key3==0)
+ 114   2                      {
+ 115   3                              while(!key3);
+ 116   3                              fashu(0xf5);
+ 117   3                              tishi();
+C51 COMPILER V9.05   ________                                                              07/24/2015 12:02:23 PAGE 3   
+
+ 118   3                      }
+ 119   2      
+ 120   2              }       
+ 121   1      }
+ 122          void main()
+ 123          {
+ 124   1              init();
+ 125   1              while(1)
+ 126   1              {
+ 127   2                      keyscan();
+ 128   2              }
+ 129   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    223    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

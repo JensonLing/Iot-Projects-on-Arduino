@@ -1,0 +1,99 @@
+C51 COMPILER V9.05   ________                                                              01/22/2018 09:37:03 PAGE 1   
+
+
+C51 COMPILER V9.05, COMPILATION OF MODULE ________
+OBJECT MODULE PLACED IN 红外发射.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE 红外发射.C BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*-----------------------------------------------   
+   2          名称：红外发射接收   
+   3          修改：无   
+   4          内容：          
+   5              *红外测试程序，用单片机通过发射管发射38K的调制频率码，由一体化接收
+   6          并解码由发光管显示。         
+   7              *正常情况下，由于反射和高灵敏度接收，LED4（P1.7)一直闪烁，可以用黑色纸
+   8          片完全遮挡接收头使          
+   9              *之不能接收到发射管的信号，这是LED4熄灭。说明功能性正常   
+  10          ------------------------------------------------*/  
+  11          #include<reg52.h>     //包含头文件，一般情况不需要改动，头文件包含特殊功能寄存器的定义     
+  12          sbit LED=P3^7;        //红外发射 
+  13          sbit LED1=P0^1;  
+  14          bit Flag;   
+  15          void Init_Timer0(void) 
+  16          {   
+  17   1              TMOD |= 0x01;             
+  18   1              TH0=0xf0;            /* Init value */   
+  19   1              TL0=0x00;   
+  20   1              EA=1;                /* interupt enable */ 
+  21   1              ET0=1;               /* enable timer0 interrupt */ 
+  22   1              TR0=1;
+  23   1      } 
+  24          /******************************************************************/   
+  25          /*                    定时器0初始化                               */
+  26          /******************************************************************/
+  27          void Timer0_isr(void) interrupt 1 using 1 
+  28          {   
+  29   1              TH0=0x0f;   /* Init value */   
+  30   1              TL0=0x00;  
+  31   1              Flag=!Flag; 
+  32   1      }
+  33          /******************************************************************/
+  34          /*                    主函数                                      */  
+  35          /******************************************************************/
+  36          void main()
+  37          {    
+  38   1              unsigned int j;   
+  39   1              Init_Timer0();    //定时器初始化  
+  40   1              LED1=0;   
+  41   1              while(1)   
+  42   1                      {          
+  43   2                              //读取一体化接收头数值 
+  44   2                               if(Flag)     
+  45   2                                      {       
+  46   3                                              for(j=0;j<27;j++)//大约38KHz        
+  47   3                                              {
+  48   4                                              LED=!LED;    //发射管输出       
+  49   4                                              }       
+  50   3                                      }     
+  51   2                      } 
+  52   1      }
+  53          
+  54          
+  55          
+C51 COMPILER V9.05   ________                                                              01/22/2018 09:37:03 PAGE 2   
+
+  56          
+  57          
+  58          
+  59          
+  60          
+  61          
+  62          
+  63          
+  64          
+  65          
+  66          
+  67          
+  68          
+  69          
+  70          
+  71          
+  72          
+  73          
+  74           
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     54    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

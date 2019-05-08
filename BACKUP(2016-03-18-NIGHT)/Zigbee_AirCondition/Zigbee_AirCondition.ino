@@ -1,7 +1,7 @@
  /*
 Controller of AirCondition                                                            
-Author: HuangSenhong
-Email: senhonghuang@126.com
+Author: Jerison Ling
+Email: lingjie981119@126.com
 Time: 02/27/2016                                                               
 */
 /*******************Port Interface**************

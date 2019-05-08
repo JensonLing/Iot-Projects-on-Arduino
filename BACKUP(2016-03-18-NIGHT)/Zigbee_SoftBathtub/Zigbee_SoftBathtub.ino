@@ -1,8 +1,8 @@
 /*
 Controller of Bathtub                                                            
-Author: HuangSenhong
-Email: senhonghuang@126.com
-Time: 02/27/2016                                                               
+Author: Jerison Ling
+Email: lingjie981119@126.com
+Time: 05/09/2019                                                               
 */
 /*******************Port Interface**************
  Arduino Mega          Zigbee DL-22 
